@@ -2,5 +2,10 @@
 pip
 autopep8
 
+# Libraries
+requests
+
 # App
 flask
+gunicorn
+flask_socketio
