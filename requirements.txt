@@ -8,4 +8,5 @@ requests
 # App
 flask
 gunicorn
+flask_cors
 flask_socketio
