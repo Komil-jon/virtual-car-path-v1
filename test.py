@@ -13,7 +13,7 @@ num_requests = 50
 interval = 1
 
 # Number of cars to send each time
-num_cars = 3
+num_cars = 1
 
 # Loop to send multiple POST requests
 for i in range(num_requests):
