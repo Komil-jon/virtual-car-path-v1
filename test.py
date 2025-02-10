@@ -4,7 +4,8 @@ import random
 import json
 
 # Define the correct API URL (Replace with your actual server URL)
-url = "http://127.0.0.1:8000/update"
+url1 = "http://127.0.0.1:8000/update"
+url = "https://eternal-virtual-car-path-robot.onrender.com/update"
 
 # Number of requests
 num_requests = 500  
