@@ -1,53 +1,46 @@
-import requests
-import time
+import aiohttp
+import asyncio
 import random
 import json
 
 # Define the correct API URL (Replace with your actual server URL)
 url = "http://127.0.0.1:8000/update"
 
-# Number of times to send the list of cars
-num_requests = 50
-
-# Interval between requests in seconds
-interval = 1
+# Number of requests
+num_requests = 500  
 
 # Number of cars to send each time
-num_cars = 1
+num_cars = 1  
 
-# Loop to send multiple POST requests
-for i in range(num_requests):
-    cars = []
-    for j in range(num_cars):
-        # Generate random latitude and longitude values
-        latitude = round(random.uniform(40.0, 41.0), 6)  # Latitude range
-        longitude = round(random.uniform(-75.0, -73.0), 6)  # Longitude range
-        cars.append({
+async def send_request(session, request_id):
+    """Send a request asynchronously with a 1-second delay between each."""
+    cars = [
+        {
             "carId": f"car{j+1}",
-            "latitude": latitude,
-            "longitude": longitude
-        })
+            "latitude": round(random.uniform(40.0, 41.0), 6),
+            "longitude": round(random.uniform(-75.0, -73.0), 6)
+        }
+        for j in range(num_cars)
+    ]
 
-    # Create the payload
     payload = {"cars": cars}
-
-    # Convert to JSON string for debugging
     json_payload = json.dumps(payload, indent=4)
-    print(f"\nRequest {i+1} payload:\n{json_payload}")
+    print(f"\n🚀 Request {request_id} payload:\n{json_payload}")
 
-    # Send the POST request with proper headers
     try:
-        response = requests.post(url, json=payload, headers={"Content-Type": "application/json"})
+        async with session.post(url, json=payload) as response:
+            response_text = await response.text()
+            print(f"✅ Response {request_id} Status Code: {response.status}")
+            print(f"📡 Response {request_id} Content: {response_text}")
+    except Exception as e:
+        print(f"❌ Request {request_id} failed due to: {e}")
 
-        # Check the response status code and content
-        print(f"Response {i+1} Status Code: {response.status_code}")
-        print(f"Response {i+1} Content: {response.text}")
+async def main():
+    """Send requests one by one with a 1-second delay."""
+    async with aiohttp.ClientSession() as session:
+        for i in range(num_requests):
+            await send_request(session, i + 1)
+            await asyncio.sleep(1)  # ⏳ Add a 1-second delay between requests
 
-        if response.status_code != 200:
-            print(f"⚠️ Warning: Request {i+1} failed!")
-
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Request {i+1} failed due to an error: {e}")
-
-    # Wait for the specified interval
-    time.sleep(interval)
+# Run the asyncio event loop
+asyncio.run(main())

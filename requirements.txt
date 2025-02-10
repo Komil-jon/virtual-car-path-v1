@@ -4,9 +4,14 @@ autopep8
 
 # Libraries
 requests
+aiohttp
 
 # App
 flask
 gunicorn
 flask_cors
 flask_socketio
+
+# For optimisation
+gevent
+eventlet
