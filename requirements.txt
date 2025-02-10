@@ -15,3 +15,6 @@ flask_socketio
 # For optimisation
 gevent
 eventlet
+
+# Database
+pymongo

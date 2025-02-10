@@ -1,73 +1,136 @@
 import os
-import threading
-import eventlet
-import eventlet.wsgi
-
+import time
+import datetime
 from flask import Flask, send_file, request, jsonify
-from flask_socketio import SocketIO, emit
 from flask_cors import CORS
+from pymongo import MongoClient
+from bson import ObjectId
+
+USERNAME = "look"
+PASSWORD = "eternal"
 
 # Create Flask App
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
-# Enable WebSockets (force async_mode="eventlet" for speed)
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
-
 print("✅ Action: Flask App Created")
 
-# Store car locations
-car_locations = []
+def convert_objectid(data):
+    if isinstance(data, dict):
+        return {key: convert_objectid(value) for key, value in data.items()}
+    elif isinstance(data, list):
+        return [convert_objectid(item) for item in data]
+    elif isinstance(data, ObjectId):
+        return str(data)  # Convert ObjectId to string
+    return data
+
+def get_mongo_client():
+    """Returns a MongoDB client connected to the virtual_path database."""
+    connection_string = f"mongodb+srv://{USERNAME}:{PASSWORD}@core.pur20xh.mongodb.net/?appName=Core"
+    client = MongoClient(connection_string)
+    return client
+
+def get_latest_update():
+    """Get the latest update from the database."""
+    client = get_mongo_client()
+    db = client['virtual_path']
+    collection = db['car_path']
+    latest_record = collection.find_one(sort=[("update_id", -1)])  # Get the latest item
+    return latest_record if latest_record else None
+
+def get_update_by_id(update_id):
+    """Fetch an update by its update_id."""
+    client = get_mongo_client()
+    db = client['virtual_path']
+    collection = db['car_path']
+    update_record = collection.find_one({"update_id": update_id})
+    print(update_record)
+    return update_record
+
+def get_latest_updates(limit=20):
+    """Fetch the latest 'limit' updates from the database."""
+    client = get_mongo_client()
+    db = client['virtual_path']
+    collection = db['car_path']
+    updates = list(collection.find().sort("update_id", -1).limit(limit))  # Get the latest 'limit' items
+    return updates
+
+def database_insert(record):
+    """Insert a record into the MongoDB collection."""
+    client = get_mongo_client()
+    db = client['virtual_path']
+    collection = db['car_path']
+    collection.insert_one(record)
+
+def generate_car_update(update_id, last_stop_position, update):
+    """Generate a car update record."""
+    return {
+        "time": datetime.datetime.utcnow().isoformat() + "Z",
+        "update_id": update_id,
+        "car_id": "CAR_1",
+        "position": update["current_position"],  # Example: (x, y, z)
+        "average_speed": update["average_speed"],
+        "battery_level": update["battery_level"],
+        "car_status": update["car_status"],  # Example: "active", "idle", etc.
+        "heading": update["heading"],
+        "fuel_level": update["fuel_level"],
+        "temperature": update["temperature"],
+        "gps_accuracy": update["gps_accuracy"],
+        "last_stop_location": last_stop_position
+    }
 
 @app.route("/")
 def index():
     """Serve the core HTML file."""
-    print("📢 New Client Connected")
     return send_file('templates/core.html')
 
 @app.route("/update", methods=["POST"])
-def update_car_location():
+def update_database():
     """Handle incoming car location updates."""
-    print(f"📡 Received Raw Data: {request.get_data(as_text=True)}")  # Log raw input
+    update = request.get_json()
 
-    try:
-        request_data = request.get_json()
-        print(f"✅ Parsed JSON: {request_data}")
+    last_update = get_latest_update()
+    record = generate_car_update(last_update["update_id"] + 1, last_update["position"], update)
+    database_insert(record)
+    return jsonify({"message": "Car locations on the database updated successfully"}), 200
 
-        if not request_data or 'cars' not in request_data:
-            print("⚠️ Error: No 'cars' data provided")
-            return jsonify({"message": "No 'cars' data provided"}), 400
-        
-        cars_data = request_data['cars']
-        if not isinstance(cars_data, list):
-            print("⚠️ Error: 'cars' must be a list")
-            return jsonify({"message": "'cars' must be a list"}), 400
+@app.route("/api/get", methods=["GET"])
+def get_car_update():
+    """Fetch a car update based on the update_id."""
+    update_id = request.args.get('update_id', type=int)
 
-        # Emit updates in a separate thread for **non-blocking** performance
-        def emit_updates():
-            for car in cars_data:
-                socketio.emit('car_location_updated', car)
-                print(f"🚗 Emitting update for car {car['carId']} → ({car['latitude']}, {car['longitude']})")
+    if not update_id:
+        return jsonify({"message": "Missing or invalid 'update_id' parameter"}), 400
 
-        threading.Thread(target=emit_updates).start()
+    # Fetch the update from the database
+    update_record = get_update_by_id(update_id + 1)
+    update_record = convert_objectid(update_record)
 
-        return jsonify({"message": "Car locations update triggered"}), 200
+    if update_record:
+        return jsonify(update_record), 200
+    else:
+        return jsonify({"message": f"No update found with update_id {update_id}"}), 404
 
-    except Exception as e:
-        print(f"❌ Error: {str(e)}")  # Log exception
-        return jsonify({"message": "Error processing data", "error": str(e)}), 500
-
-@socketio.on('connect')
-def handle_connect():
-    """Handle WebSocket client connections."""
-    print('🔌 WebSocket Connected')
+@app.route("/api/all")
+def get_all_updates():
+    connection_string = f"mongodb+srv://{USERNAME}:{PASSWORD}@core.pur20xh.mongodb.net/?appName=Core"
+    client = MongoClient(connection_string)
+    db = client['virtual_path']
+    collection = db['car_path']
+    
+    # Fetch the latest 20 updates
+    updates = list(collection.find().sort("update_id", -1).limit(20))
+    
+    # Convert ObjectId fields to strings
+    updates = convert_objectid(updates)
+    
+    # Return the updates as a JSON response
+    return jsonify(updates), 200
 
 def main():
-    """Start the Flask server using Eventlet for high-speed WebSockets."""
-    print("🚀 Starting server with Eventlet for real-time WebSockets")
-
-    # Run the server with Eventlet (better WebSocket handling)
-    socketio.run(app, port=int(os.environ.get('PORT', 8000)), debug=True, allow_unsafe_werkzeug=True)
+    """Start the Flask server."""
+    print("🚀 Starting server...")
+    app.run(host="0.0.0.0", port=int(os.environ.get('PORT', 8000)), debug=True)
 
 if __name__ == "__main__":
     main()

@@ -1,47 +1,48 @@
-import aiohttp
-import asyncio
 import random
-import json
+import datetime
+from pymongo import MongoClient
 
-# Define the correct API URL (Replace with your actual server URL)
-url1 = "http://127.0.0.1:8000/update"
-url = "https://eternal-virtual-car-path-robot.onrender.com/update"
+# MongoDB Connection Function
+def database_insert(record):
+    USERNAME = "look"
+    PASSWORD = "eternal"
+    
+    connection_string = f"mongodb+srv://{USERNAME}:{PASSWORD}@core.pur20xh.mongodb.net/?appName=Core"
+    client = MongoClient(connection_string)
+    db = client['virtual_path']
+    collection = db['car_path']
+    collection.insert_one(record)
 
-# Number of requests
-num_requests = 500  
-
-# Number of cars to send each time
-num_cars = 1  
-
-async def send_request(session, request_id):
-    """Send a request asynchronously with a 1-second delay between each."""
-    cars = [
-        {
-            "carId": f"car{j+1}",
-            "latitude": round(random.uniform(40.0, 41.0), 6),
-            "longitude": round(random.uniform(-75.0, -73.0), 6)
+# Function to Generate a Simulated Car Update
+def generate_car_update(update_id):
+    return {
+        "time": datetime.datetime.utcnow().isoformat() + "Z",
+        "update_id": update_id,
+        "car_id": "CAR_1",
+        "position": {
+            "x": round(random.uniform(-180, 180), 6),
+            "y": round(random.uniform(-90, 90), 6),
+            "z": round(random.uniform(0, 50), 2)
+        },
+        "average_speed": round(random.uniform(0, 120), 2),
+        "battery_level": random.randint(0, 100),
+        "car_status": random.choice(["active", "idle", "charging", "offline"]),
+        "heading": round(random.uniform(0, 360), 2),
+        "fuel_level": random.randint(0, 100),
+        "temperature": {
+            "engine": round(random.uniform(50, 100), 2),
+            "cabin": round(random.uniform(15, 30), 2)
+        },
+        "gps_accuracy": round(random.uniform(0.1, 5), 2),
+        "last_stop_location": {
+            "x": round(random.uniform(-180, 180), 6),
+            "y": round(random.uniform(-90, 90), 6),
+            "z": round(random.uniform(0, 50), 2)
         }
-        for j in range(num_cars)
-    ]
+    }
 
-    payload = {"cars": cars}
-    json_payload = json.dumps(payload, indent=4)
-    print(f"\n🚀 Request {request_id} payload:\n{json_payload}")
-
-    try:
-        async with session.post(url, json=payload) as response:
-            response_text = await response.text()
-            print(f"✅ Response {request_id} Status Code: {response.status}")
-            print(f"📡 Response {request_id} Content: {response_text}")
-    except Exception as e:
-        print(f"❌ Request {request_id} failed due to: {e}")
-
-async def main():
-    """Send requests one by one with a 1-second delay."""
-    async with aiohttp.ClientSession() as session:
-        for i in range(num_requests):
-            await send_request(session, i + 1)
-            await asyncio.sleep(1)  # ⏳ Add a 1-second delay between requests
-
-# Run the asyncio event loop
-asyncio.run(main())
+# Insert 100 Simulated Records into MongoDB
+for i in range(1, 101):
+    record = generate_car_update(i)
+    database_insert(record)
+    print(f"Inserted record {i}")
