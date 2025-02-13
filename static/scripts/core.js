@@ -1,57 +1,146 @@
+let latestUpdateId = 0; // Track last update ID
+
+// Create Canvas for Chart
+const chartContainer = document.getElementById("chart-container");
+const canvas = document.createElement("canvas");
+canvas.id = "carChartCanvas";
+chartContainer.appendChild(canvas);
+const ctx = canvas.getContext("2d");
+
+if (!ctx) {
+    console.error("❌ Chart canvas not found!");
+} else {
+    console.log("✅ Chart canvas found, initializing...");
+}
+
 let map;
 let markers = {};
 let paths = {};
 let lastCarId = null;
-let latestUpdateId = 0;  // Initial value for the update ID
 
+// Chart Data Structure
+let chartData = {
+    labels: [], // Time values
+    datasets: [
+        { label: "Speed (km/h)", data: [], borderColor: "red", backgroundColor: "rgba(255, 99, 132, 0.5)" },
+        { label: "Battery (%)", data: [], borderColor: "blue", backgroundColor: "rgba(54, 162, 235, 0.5)" },
+        { label: "Fuel Level (%)", data: [], borderColor: "green", backgroundColor: "rgba(75, 192, 192, 0.5)" },
+        { label: "Engine Temp (°C)", data: [], borderColor: "orange", backgroundColor: "rgba(255, 159, 64, 0.5)" },
+        { label: "Heading (°)", data: [], borderColor: "purple", backgroundColor: "rgba(153, 102, 255, 0.5)" }
+    ]
+};
+
+// Chart Configuration
+const chartConfig = {
+    type: "line",
+    data: chartData,
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: {
+            duration: 2000,
+            easing: "easeInOutQuart",
+        },
+        elements: {
+            line: { tension: 0.3, borderWidth: 2 },
+            point: { radius: 3 }
+        },
+        scales: {
+            x: { title: { display: true, text: "Time" } },
+            y: { title: { display: true, text: "Value" }, beginAtZero: false }
+        },
+        interaction: {
+            mode: 'nearest',
+            axis: 'x',
+            intersect: false
+        },
+        plugins: {
+            title: {
+              display: true,
+              text: "© Eternal 2025"
+            }
+        },
+    }
+};
+
+const carChart = new Chart(ctx, chartConfig);
+
+// Initialize Data Fetching
 async function init() {
-    console.log("🚀 Initializing Google Map...");
+    console.log("🚀 Initializing chart and map...");
     await customElements.whenDefined("gmp-map");
     map = document.querySelector("gmp-map");
     map.innerMap.setOptions({ mapTypeControl: false });
-
-    console.log("✅ Map initialized.");
     await fetchInitialUpdates();
-    fetchNewUpdates();
+    fetchChartData();
 }
 
-// Fetch the latest 20 updates from your server's /api/all endpoint
+// Fetch Initial 20 Data Points
 async function fetchInitialUpdates() {
     try {
         const response = await fetch("/api/all");
         const data = await response.json();
 
         if (data.length > 0) {
-            latestUpdateId = data[data.length - 1].update_id;  // Store the last update_id
-            data.reverse().forEach(updateCarLocation);  // Reverse the array to show updates in chronological order
+            latestUpdateId = data[0].update_id;
+            data.reverse().forEach(updateCarLocation);
+            data.forEach(updateChart);
         }
     } catch (error) {
         console.error("❌ Error fetching initial updates:", error);
     }
 }
 
-// Continuously fetch new updates from your server's /api/get endpoint based on the latest update_id
-async function fetchNewUpdates() {
+// Continuously Fetch New Data
+async function fetchChartData() {
     try {
         const response = await fetch(`/api/get?update_id=${latestUpdateId}`);
         const data = await response.json();
 
+        console.log(data);
+
         if (data && data.update_id > latestUpdateId) {
+            console.log("1");
             updateCarLocation(data);
+            updateChart(data);
             latestUpdateId = data.update_id;  // Update the latest update_id with the new one
         } else if (data.length > 0) {
+            console.log("2");
             // If multiple updates are returned (batch updates), process them
-            data.forEach(updateCarLocation);
-            latestUpdateId = data[data.length - 1].update_id;  // Update with the last update_id
+            latestUpdateId = data[0].update_id;  // Update with the last update_id
+            data.reverse().forEach(updateCarLocation);
+            data.forEach(updateChart);
         }
+        console.log("3");
     } catch (error) {
-        console.error("❌ Error fetching new updates:", error);
+        console.error("❌ Error fetching chart data:", error);
     }
-
-    setTimeout(fetchNewUpdates, 1000);  // Keep fetching every second
+    setTimeout(fetchChartData, 1000);
 }
 
-// Update car location and draw the path
+// Update Chart with New Data
+function updateChart(carData) {
+    const time = new Date(carData.time).toLocaleTimeString();
+    console.log(`📊 Adding time: ${time} | Speed: ${carData.average_speed}, Battery: ${carData.battery_level}`);
+
+    if (chartData.labels.length >= 20) chartData.labels.shift();
+    chartData.labels.push(time);
+
+    chartData.datasets[0].data.push(carData.average_speed);
+    chartData.datasets[1].data.push(carData.battery_level);
+    chartData.datasets[2].data.push(carData.fuel_level);
+    chartData.datasets[3].data.push(carData.temperature?.engine || 0);
+    chartData.datasets[4].data.push(carData.heading);
+
+    chartData.datasets.forEach(dataset => {
+        if (dataset.data.length > 20) dataset.data.shift();
+    });
+
+    setTimeout(() => carChart.update(), 100);
+    console.log("📈 Chart updated:", chartData);
+}
+
+// Update Car Location
 function updateCarLocation(carData) {
     const { car_id, position, average_speed } = carData;
     const latitude = position.y;
@@ -59,54 +148,39 @@ function updateCarLocation(carData) {
     console.log(`🚗 Updating ${car_id} → (${latitude}, ${longitude})`);
 
     const positionLatLng = new google.maps.LatLng(latitude, longitude);
-
+    
     if (!markers[car_id]) {
-        // If it's the first update for this car, create the marker and path
         markers[car_id] = new google.maps.Marker({
             position: positionLatLng,
             map: map.innerMap,
             title: `Car ${car_id}`,
-            icon: {
-                url: "https://maps.google.com/mapfiles/kml/shapes/cabs.png",
-                scaledSize: new google.maps.Size(40, 40),
-            },
+            icon: { url: "https://maps.google.com/mapfiles/kml/shapes/cabs.png", scaledSize: new google.maps.Size(40, 40) }
         });
-
         paths[car_id] = new google.maps.Polyline({
             path: [positionLatLng],
             geodesic: true,
             strokeColor: getSpeedColor(average_speed),
-            strokeOpacity: 1.0,
             strokeWeight: 3,
             map: map.innerMap,
         });
-
-        console.log(`✅ Marker and path created for ${car_id}`);
     } else {
-        // Update the marker and path for an existing car
         markers[car_id].setPosition(positionLatLng);
         const path = paths[car_id].getPath();
         path.push(positionLatLng);
         paths[car_id].setOptions({ strokeColor: getSpeedColor(average_speed) });
-        console.log(`📈 Path updated for ${car_id}`);
     }
-
     animateCameraToPosition(positionLatLng, car_id);
 }
 
-// Smooth camera animation to new position
 function animateCameraToPosition(position, carId) {
     if (lastCarId !== carId) {
         map.innerMap.setZoom(15);
         lastCarId = carId;
     }
     map.innerMap.panTo(position);
-    console.log(`🔄 Camera moved to ${carId}`);
 }
 
-// Get a color based on the car's speed
 function getSpeedColor(speed) {
-    const minSpeed = 0;
     const maxSpeed = 120;
     const speedRatio = Math.min(Math.max(speed / maxSpeed, 0), 1);
     const red = Math.floor(255 * (1 - speedRatio));
@@ -115,6 +189,6 @@ function getSpeedColor(speed) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-    console.log("📜 Document loaded, initializing map...");
+    console.log("📜 Document loaded, initializing...");
     init();
 });
