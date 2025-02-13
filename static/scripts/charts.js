@@ -71,9 +71,9 @@ async function fetchInitialUpdates() {
         const data = await response.json();
 
         if (data.length > 0) {
+            latestUpdateId = data[0].update_id;
             data.reverse().forEach(updateCarLocation);
-            data.reverse().forEach(updateChart);
-            latestUpdateId = data[data.length - 1].update_id;
+            data.forEach(updateChart);
         }
     } catch (error) {
         console.error("❌ Error fetching initial updates:", error);
@@ -86,11 +86,21 @@ async function fetchChartData() {
         const response = await fetch(`/api/get?update_id=${latestUpdateId}`);
         const data = await response.json();
 
-        if (Array.isArray(data) && data.length > 0) {
+        console.log(data);
+
+        if (data && data.update_id > latestUpdateId) {
+            console.log("1");
+            updateCarLocation(data);
+            updateChart(data);
+            latestUpdateId = data.update_id;  // Update the latest update_id with the new one
+        } else if (data.length > 0) {
+            console.log("2");
+            // If multiple updates are returned (batch updates), process them
+            latestUpdateId = data[0].update_id;  // Update with the last update_id
+            data.reverse().forEach(updateCarLocation);
             data.forEach(updateChart);
-            data.forEach(updateCarLocation);
-            latestUpdateId = data[data.length - 1].update_id;
         }
+        console.log("3");
     } catch (error) {
         console.error("❌ Error fetching chart data:", error);
     }
@@ -171,4 +181,3 @@ document.addEventListener("DOMContentLoaded", () => {
     console.log("📜 Document loaded, initializing...");
     init();
 });
-

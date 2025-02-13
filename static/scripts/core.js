@@ -22,8 +22,8 @@ async function fetchInitialUpdates() {
         const data = await response.json();
 
         if (data.length > 0) {
-            data.reverse().forEach(updateCarLocation);  // Reverse the array to show updates in chronological order
             latestUpdateId = data[data.length - 1].update_id;  // Store the last update_id
+            data.reverse().forEach(updateCarLocation);  // Reverse the array to show updates in chronological order
         }
     } catch (error) {
         console.error("❌ Error fetching initial updates:", error);
