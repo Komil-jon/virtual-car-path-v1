@@ -1,3 +1,4 @@
+import time
 import random
 import datetime
 from pymongo import MongoClient
@@ -13,36 +14,85 @@ def database_insert(record):
     collection = db['car_path']
     collection.insert_one(record)
 
+# Function to Fetch Current Temperature in London
+def fetch_london_temperature():
+    return 10.0  # Placeholder temperature in Celsius
+
+# Adjust heading to allow negative values instead of 357° using -3°
+def adjust_heading(heading):
+    return heading - 360 if heading > 180 else heading
+
 # Function to Generate a Simulated Car Update
-def generate_car_update(update_id):
+def generate_car_update(update_id, start_time, start_position, start_battery, start_heading):
+    # Fetch current temperature in London
+    current_temp = fetch_london_temperature()
+    
+    # Calculate realistic movement for 5-second intervals
+    speed = round(random.uniform(1.0, 2.0), 2)  # Speed in meters per second
+    distance = speed * 5  # Distance covered in 5 seconds (max ~10 meters)
+    
+    heading = adjust_heading((start_heading + random.uniform(-3, 3)) % 360)  # Small change in heading for natural movement
+    rad_heading = heading * (3.14159265 / 180)  # Convert to radians
+
+    # Simulate realistic movement (convert meters to lat/lon changes)
+    new_position = {
+        "x": start_position["x"] + (distance * 0.000008 * random.uniform(0.9, 1.1)),  # Small lateral movement
+        "y": start_position["y"] + (distance * 0.000008 * random.uniform(0.9, 1.1)),
+        "z": start_position["z"]  # Assuming flat terrain
+    }
+    
+    # Ensure positions are within valid ranges
+    new_position["x"] = max(-180, min(180, new_position["x"]))
+    new_position["y"] = max(-90, min(90, new_position["y"]))
+
+    # Decrease battery level (slower than before to match a toy car's battery drain rate)
+    battery_level = max(0, start_battery - random.uniform(0.05, 0.2))  # 0.05% - 0.2% decrease every 5 sec
+
     return {
-        "time": datetime.datetime.utcnow().isoformat() + "Z",
+        "time": (start_time + datetime.timedelta(seconds=update_id * 5)).isoformat() + "Z",
         "update_id": update_id,
         "car_id": "CAR_1",
-        "position": {
-            "x": round(random.uniform(-180, 180), 6),
-            "y": round(random.uniform(-90, 90), 6),
-            "z": round(random.uniform(0, 50), 2)
-        },
-        "average_speed": round(random.uniform(0, 120), 2),
-        "battery_level": random.randint(0, 100),
-        "car_status": random.choice(["active", "idle", "charging", "offline"]),
-        "heading": round(random.uniform(0, 360), 2),
-        "fuel_level": random.randint(0, 100),
+        "position": new_position,
+        "average_speed": speed,
+        "battery_level": battery_level,
+        "car_status": "active" if battery_level > 0 else "offline",
+        "heading": heading,
+        "fuel_level": 50,  # Constant fuel level (for simulation)
         "temperature": {
-            "engine": round(random.uniform(50, 100), 2),
-            "cabin": round(random.uniform(15, 30), 2)
+            "engine": current_temp + random.uniform(5, 10),  # Engine is slightly warmer
+            "cabin": current_temp + random.uniform(-1, 1)    # Cabin temperature close to ambient
         },
-        "gps_accuracy": round(random.uniform(0.1, 5), 2),
-        "last_stop_location": {
-            "x": round(random.uniform(-180, 180), 6),
-            "y": round(random.uniform(-90, 90), 6),
-            "z": round(random.uniform(0, 50), 2)
-        }
+        "gps_accuracy": round(random.uniform(0.1, 1.0), 2),  # Improved GPS accuracy
+        "last_stop_location": start_position if update_id == 1 else None  # First update has last stop as start
     }
 
-# Insert 100 Simulated Records into MongoDB
+# Initial conditions
+start_time = datetime.datetime.utcnow()
+start_position = {"x": -0.1276, "y": 51.5074, "z": 0}  # Approximate coordinates for London
+start_battery = 100.0  # Start with full battery
+start_heading = 0.0    # Start heading in degrees
+
+# Insert Initial 100 Simulated Records
 for i in range(1, 101):
-    record = generate_car_update(i)
+    record = generate_car_update(i, start_time, start_position, start_battery, start_heading)
     database_insert(record)
     print(f"Inserted record {i}")
+
+    # Update starting conditions for next iteration
+    start_position = record["position"]
+    start_battery = record["battery_level"]
+    start_heading = record["heading"]
+
+# Continuous Real-Time Updates Every 5 Seconds
+i = 101
+while True:
+    time.sleep(5)
+    record = generate_car_update(i, start_time, start_position, start_battery, start_heading)
+    database_insert(record)
+    print(f"Inserted record {i}")
+
+    # Update starting conditions for next iteration
+    start_position = record["position"]
+    start_battery = record["battery_level"]
+    start_heading = record["heading"]
+    i += 1
