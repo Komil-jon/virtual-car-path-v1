@@ -26,7 +26,10 @@ let chartData = {
         { label: "Battery (%)", data: [], borderColor: "blue", backgroundColor: "rgba(54, 162, 235, 0.5)" },
         { label: "Fuel Level (%)", data: [], borderColor: "green", backgroundColor: "rgba(75, 192, 192, 0.5)" },
         { label: "Engine Temp (°C)", data: [], borderColor: "orange", backgroundColor: "rgba(255, 159, 64, 0.5)" },
-        { label: "Heading (°)", data: [], borderColor: "purple", backgroundColor: "rgba(153, 102, 255, 0.5)" }
+        { label: "Heading (°)", data: [], borderColor: "purple", backgroundColor: "rgba(153, 102, 255, 0.5)" },
+        { label: "Humidity (%)", data: [], borderColor: "teal", backgroundColor: "rgba(0, 128, 128, 0.5)" },
+        { label: "Pressure (10⁴Pa)", data: [], borderColor: "brown", backgroundColor: "rgba(165, 42, 42, 0.5)" },
+        { label: "UV Radiation (mW/m²)", data: [], borderColor: "pink", backgroundColor: "rgba(255, 192, 203, 0.5)" },
     ]
 };
 
@@ -131,6 +134,9 @@ function updateChart(carData) {
     chartData.datasets[2].data.push(carData.fuel_level);
     chartData.datasets[3].data.push(carData.temperature?.engine || 0);
     chartData.datasets[4].data.push(carData.heading);
+    chartData.datasets[5].data.push(carData.humidity);
+    chartData.datasets[6].data.push(carData.pressure);
+    chartData.datasets[7].data.push(carData.radiation);
 
     chartData.datasets.forEach(dataset => {
         if (dataset.data.length > 20) dataset.data.shift();

@@ -15,8 +15,20 @@ def database_insert(record):
     collection.insert_one(record)
 
 # Function to Fetch Current Temperature in London
-def fetch_london_temperature():
+def fetch_outside_temperature():
     return 10.0  # Placeholder temperature in Celsius
+
+def fetch_motor_temperature():
+    return 15.0
+
+def fetch_humidity():
+    return 30.0
+
+def fetch_pressure():
+    return 10.13
+
+def fetch_radiation():
+    return 4.0
 
 # Adjust heading to allow negative values instead of 357° using -3°
 def adjust_heading(heading):
@@ -25,13 +37,13 @@ def adjust_heading(heading):
 # Function to Generate a Simulated Car Update
 def generate_car_update(update_id, start_time, start_position, start_battery, start_heading):
     # Fetch current temperature in London
-    current_temp = fetch_london_temperature()
+    current_temp = fetch_outside_temperature()
     
     # Calculate realistic movement for 5-second intervals
     speed = round(random.uniform(1.0, 2.0), 2)  # Speed in meters per second
-    distance = speed * 5  # Distance covered in 5 seconds (max ~10 meters)
+    distance = speed * 5 * 3.6 # Distance covered in 5 seconds (max ~10 meters), 3.6 for m/s to km/h
     
-    heading = adjust_heading((start_heading + random.uniform(-3, 3)) % 360)  # Small change in heading for natural movement
+    heading = adjust_heading((random.uniform(-3, 3)) % 360)  # Small change in heading for natural movement
     rad_heading = heading * (3.14159265 / 180)  # Convert to radians
 
     # Simulate realistic movement (convert meters to lat/lon changes)
@@ -55,12 +67,15 @@ def generate_car_update(update_id, start_time, start_position, start_battery, st
         "position": new_position,
         "average_speed": speed,
         "battery_level": battery_level,
+        "humidity": fetch_humidity(),
+        "pressure": fetch_pressure(),
+        "radiation": fetch_radiation(),
         "car_status": "active" if battery_level > 0 else "offline",
         "heading": heading,
         "fuel_level": 50,  # Constant fuel level (for simulation)
         "temperature": {
-            "engine": current_temp + random.uniform(5, 10),  # Engine is slightly warmer
-            "cabin": current_temp + random.uniform(-1, 1)    # Cabin temperature close to ambient
+            "engine": fetch_motor_temperature(),  # Engine is slightly warmer
+            "outside": fetch_outside_temperature()    # Cabin temperature close to ambient
         },
         "gps_accuracy": round(random.uniform(0.1, 1.0), 2),  # Improved GPS accuracy
         "last_stop_location": start_position if update_id == 1 else None  # First update has last stop as start
