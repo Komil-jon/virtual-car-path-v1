@@ -173,25 +173,49 @@ function updateCarLocation(carData) {
         markers[car_id].setPosition(positionLatLng);
         const path = paths[car_id].getPath();
         path.push(positionLatLng);
-        paths[car_id].setOptions({ strokeColor: getSpeedColor(average_speed) });
+        
+        // Create a new segment with a different color
+        const newSegment = new google.maps.Polyline({
+            path: [path.getAt(path.getLength() - 2), positionLatLng],
+            geodesic: true,
+            strokeColor: getSpeedColor(average_speed),
+            strokeWeight: 7,
+            map: map.innerMap,
+        });
     }
+
+    // Add circular markers at joints with a fixed blue color
+    new google.maps.Marker({
+        position: positionLatLng,
+        map: map.innerMap,
+        icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 7, // Adjust size of the circle
+            fillColor: "yellow",
+            fillOpacity: 1,
+            strokeWeight: 1,
+            strokeColor: "orange"
+        }
+    });
+
     animateCameraToPosition(positionLatLng, car_id);
 }
 
+
 function animateCameraToPosition(position, carId) {
     if (lastCarId !== carId) {
-        map.innerMap.setZoom(15);
+        map.innerMap.setZoom(18);
         lastCarId = carId;
     }
     map.innerMap.panTo(position);
 }
 
 function getSpeedColor(speed) {
-    const maxSpeed = 120;
+    const maxSpeed = 2;
     const speedRatio = Math.min(Math.max(speed / maxSpeed, 0), 1);
-    const red = Math.floor(255 * (1 - speedRatio));
-    const green = Math.floor(255 * speedRatio);
-    return `rgb(${red}, ${green}, 0)`;
+    const red = Math.floor(255 * speedRatio);
+    const green = Math.floor(255 * (1 - speedRatio));
+    return `rgb(${red}, ${green}, 255)`;
 }
 
 document.addEventListener("DOMContentLoaded", () => {
