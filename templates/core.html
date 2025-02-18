@@ -19,6 +19,15 @@
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="static/scripts/core.js"></script>
-
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const mapElement = document.querySelector("gmp-map");
+            if (mapElement) {
+                console.log("random")
+                mapElement.setAttribute("map-type-id", "satellite");
+            }
+        });
+    </script>
+    
 </body>
 </html>
