@@ -4,7 +4,7 @@
     <title>Car Path</title>
     <link rel="icon" type="image/svg+xml" href="/static/assets/logo.svg">
     <script type="module" src="https://ajax.googleapis.com/ajax/libs/@googlemaps/extended-component-library/0.6.11/index.min.js"></script>
-    <link rel="stylesheet" href="static/styles/core.css"/>
+    <link rel="stylesheet" href="static/styles/chart.css"/>
 </head>
 <body>
     <div id="chart-container"></div>
@@ -19,23 +19,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="static/scripts/core.js"></script>
-    
-    <script>
-        function resizeChartContainer() {
-            const chartContainer = document.getElementById("chart-container");
-            if (chartContainer) {
-                chartContainer.style.width = `calc(100dvw - 40px)`;
-                chartContainer.style.height = `calc(100dvh - 40px)`;
-                chartContainer.style.bottom = `10px`;
-            } else {
-                console.error("❌ #chart-container not found!");
-            }
-        }
-        
-        // Resize on load and on window resize
-        window.addEventListener("load", resizeChartContainer);
-        window.addEventListener("resize", resizeChartContainer);
-    </script>
     
 </body>
 </html>
