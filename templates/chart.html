@@ -25,7 +25,8 @@
             const chartContainer = document.getElementById("chart-container");
             if (chartContainer) {
                 chartContainer.style.width = `calc(100dvw - 40px)`;
-                chartContainer.style.height = `calc(100dvh - 70px)`;
+                chartContainer.style.height = `calc(100dvh - 40px)`;
+                chartContainer.style.bottom = `10px`;
             } else {
                 console.error("❌ #chart-container not found!");
             }
