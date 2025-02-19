@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Car Path</title>
+    <link rel="icon" type="image/svg+xml" href="/static/assets/logo.svg">
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/@googlemaps/extended-component-library/0.6.11/index.min.js"></script>
+    <link rel="stylesheet" href="static/styles/core.css"/>
+</head>
+<body>
+    <gmpx-api-loader key="AIzaSyAZMTnhsyiK_U2mMPxHww9w2dXQU_gvcQU">
+    </gmpx-api-loader>
+
+    <gmp-map center="51.5074,-0.1278" zoom="13" map-id="b8b97e4aa39bf0fa" map-type-id="satellite" style="display:block;">
+        <div slot="control-block-start-inline-start" class="place-picker-container">
+            <gmpx-place-picker placeholder="Enter an address"></gmpx-place-picker>
+        </div>
+    </gmp-map>
+
+    <script src="static/scripts/core.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const mapElement = document.querySelector("gmp-map");
+            if (mapElement) {
+                console.log("random")
+                mapElement.setAttribute("map-type-id", "satellite");
+            }
+        });
+    </script>
+    
+</body>
+</html>

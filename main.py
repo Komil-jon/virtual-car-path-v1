@@ -81,8 +81,15 @@ def generate_car_update(update_id, last_stop_position, update):
 
 @app.route("/")
 def index():
-    """Serve the core HTML file."""
-    return send_file('templates/core.html')
+    """Serve the appropriate HTML file based on the 'option' parameter."""
+    option = request.args.get("option", "").lower()  # Get the 'option' query parameter, default to empty string
+    
+    if option == "chart":
+        return send_file("templates/chart.html")
+    elif option == "map":
+        return send_file("templates/map.html")
+    else:
+        return send_file("templates/core.html")
 
 @app.route("/update", methods=["POST"])
 def update_database():

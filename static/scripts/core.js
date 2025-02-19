@@ -1,72 +1,87 @@
-let latestUpdateId = 0; // Track last update ID
-
-// Create Canvas for Chart
-const chartContainer = document.getElementById("chart-container");
-const canvas = document.createElement("canvas");
-canvas.id = "carChartCanvas";
-chartContainer.appendChild(canvas);
-const ctx = canvas.getContext("2d");
-
-if (!ctx) {
-    console.error("❌ Chart canvas not found!");
-} else {
-    console.log("✅ Chart canvas found, initializing...");
+// Function to get URL parameters
+function getUrlParam(name) {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get(name);
 }
+
+const option = getUrlParam("option"); // Get the option parameter from the URL
+
+let latestUpdateId = 0; // Track last update ID
 
 let map;
 let markers = {};
 let paths = {};
 let lastCarId = null;
 
-// Chart Data Structure
-let chartData = {
-    labels: [], // Time values
-    datasets: [
-        { label: "Speed (km/h)", data: [], borderColor: "red", backgroundColor: "rgba(255, 99, 132, 0.5)" },
-        { label: "Battery (%)", data: [], borderColor: "blue", backgroundColor: "rgba(54, 162, 235, 0.5)" },
-        { label: "Fuel Level (%)", data: [], borderColor: "green", backgroundColor: "rgba(75, 192, 192, 0.5)" },
-        { label: "Engine Temp (°C)", data: [], borderColor: "orange", backgroundColor: "rgba(255, 159, 64, 0.5)" },
-        { label: "Heading (°)", data: [], borderColor: "purple", backgroundColor: "rgba(153, 102, 255, 0.5)" },
-        { label: "Humidity (%)", data: [], borderColor: "teal", backgroundColor: "rgba(0, 128, 128, 0.5)" },
-        { label: "Pressure (10⁴Pa)", data: [], borderColor: "brown", backgroundColor: "rgba(165, 42, 42, 0.5)" },
-        { label: "UV Radiation (mW/m²)", data: [], borderColor: "pink", backgroundColor: "rgba(255, 192, 203, 0.5)" },
-    ]
-};
+let chartData;
+let carChart;
 
-// Chart Configuration
-const chartConfig = {
-    type: "line",
-    data: chartData,
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: {
-            duration: 2000,
-            easing: "easeInOutQuart",
-        },
-        elements: {
-            line: { tension: 0.3, borderWidth: 2 },
-            point: { radius: 3 }
-        },
-        scales: {
-            x: { title: { display: true, text: "Time" } },
-            y: { title: { display: true, text: "Value" }, beginAtZero: false }
-        },
-        interaction: {
-            mode: 'nearest',
-            axis: 'x',
-            intersect: false
-        },
-        plugins: {
-            title: {
-              display: true,
-              text: "© Eternal 2025"
-            }
-        },
+if (option !== "map") {
+    const chartContainer = document.getElementById("chart-container");
+    if (chartContainer) {
+        const canvas = document.createElement("canvas");
+        canvas.id = "carChartCanvas";
+        chartContainer.appendChild(canvas);
+        const ctx = canvas.getContext("2d");
+
+        if (!ctx) {
+            console.error("❌ Chart canvas not found!");
+        } else {
+            console.log("✅ Chart canvas found, initializing...");
+
+            // Chart Data Structure
+            chartData = {  // Now assigned to the global variable
+                labels: [],
+                datasets: [
+                    { label: "Speed (km/h)", data: [], borderColor: "red", backgroundColor: "rgba(255, 99, 132, 0.5)" },
+                    { label: "Battery (%)", data: [], borderColor: "blue", backgroundColor: "rgba(54, 162, 235, 0.5)" },
+                    { label: "Fuel Level (%)", data: [], borderColor: "green", backgroundColor: "rgba(75, 192, 192, 0.5)" },
+                    { label: "Engine Temp (°C)", data: [], borderColor: "orange", backgroundColor: "rgba(255, 159, 64, 0.5)" },
+                    { label: "Heading (°)", data: [], borderColor: "purple", backgroundColor: "rgba(153, 102, 255, 0.5)" },
+                    { label: "Humidity (%)", data: [], borderColor: "teal", backgroundColor: "rgba(0, 128, 128, 0.5)" },
+                    { label: "Pressure (10⁴Pa)", data: [], borderColor: "brown", backgroundColor: "rgba(165, 42, 42, 0.5)" },
+                    { label: "UV Radiation (mW/m²)", data: [], borderColor: "pink", backgroundColor: "rgba(255, 192, 203, 0.5)" },
+                ]
+            };
+
+            // Chart Configuration
+            const chartConfig = {
+                type: "line",
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 2000,
+                        easing: "easeInOutQuart",
+                    },
+                    elements: {
+                        line: { tension: 0.3, borderWidth: 2 },
+                        point: { radius: 3 }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: "Time" } },
+                        y: { title: { display: true, text: "Value" }, beginAtZero: false }
+                    },
+                    interaction: {
+                        mode: 'nearest',
+                        axis: 'x',
+                        intersect: false
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: "© Eternal 2025"
+                        }
+                    },
+                }
+            };
+
+            carChart = new Chart(ctx, chartConfig);  // Now assigned to the global variable
+        }
     }
-};
+}
 
-const carChart = new Chart(ctx, chartConfig);
 
 // Initialize Data Fetching
 async function init() {
@@ -86,8 +101,9 @@ async function fetchInitialUpdates() {
 
         if (data.length > 0) {
             latestUpdateId = data[0].update_id;
-            data.reverse().forEach(updateCarLocation);
-            data.forEach(updateChart);
+            data.reverse();
+            if (option !== "chart") data.forEach(updateCarLocation);
+            if (option !== "map") data.forEach(updateChart);
         }
     } catch (error) {
         console.error("❌ Error fetching initial updates:", error);
@@ -104,15 +120,16 @@ async function fetchChartData() {
 
         if (data && data.update_id > latestUpdateId) {
             console.log("1");
-            updateCarLocation(data);
-            updateChart(data);
+            if (option !== "chart") updateCarLocation(data);
+            if (option !== "map") updateChart(data);
             latestUpdateId = data.update_id;  // Update the latest update_id with the new one
         } else if (data.length > 0) {
             console.log("2");
             // If multiple updates are returned (batch updates), process them
             latestUpdateId = data[0].update_id;  // Update with the last update_id
-            data.reverse().forEach(updateCarLocation);
-            data.forEach(updateChart);
+            data.reverse();
+            if (option !== "chart") data.forEach(updateCarLocation);
+            if (option !== "map") data.forEach(updateChart);
         }
         console.log("3");
     } catch (error) {
