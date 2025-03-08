@@ -68,7 +68,11 @@ def generate_car_update(update_id, last_stop_position, update):
         "time": datetime.datetime.utcnow().isoformat() + "Z",
         "update_id": update_id,
         "car_id": "CAR_1",
-        "position": update["current_position"],  # Example: (x, y, z)
+        "position": {
+            'x': update["position"]['x'],
+            'y': update["position"]['y'],
+            'z': update["position"]['z']
+        },
         "average_speed": update["average_speed"],
         "battery_level": update["battery_level"],
         "car_status": update["car_status"],  # Example: "active", "idle", etc.
