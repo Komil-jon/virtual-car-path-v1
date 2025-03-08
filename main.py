@@ -75,12 +75,15 @@ def generate_car_update(update_id, last_stop_position, update):
         },
         "average_speed": update["average_speed"],
         "battery_level": update["battery_level"],
+        "humidity": update["humidity"],
+        "pressure": update["pressure"],
+        "radiation": update["radiation"],
         "car_status": update["car_status"],  # Example: "active", "idle", etc.
         "heading": update["heading"],
         "fuel_level": update["fuel_level"],
         "temperature": update["temperature"],
         "gps_accuracy": update["gps_accuracy"],
-        "last_stop_location": last_stop_position
+        "last_stop_location": last_stop_position,
     }
 
 @app.route("/")
