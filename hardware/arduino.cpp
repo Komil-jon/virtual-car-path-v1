@@ -10,7 +10,9 @@ const int threshold = 500;
 const int frontTrig = 3;
 const int frontEcho = A2;
 const int backTrig = 5;
-const int backEcho = A3; 
+const int backEcho = A3;
+const int sideTrig = A1;
+const int sideEcho = A4;
 
 const int buzzer = A5;
 
@@ -29,6 +31,8 @@ void setup(){
   pinMode(frontEcho, INPUT);
   pinMode(backTrig, OUTPUT);
   pinMode(backEcho, INPUT);
+  pinMode(sideTrig, OUTPUT);
+  pinMode(sideEcho, INPUT);
   pinMode(buzzer, OUTPUT);
   
   Serial.begin(9600);
@@ -50,7 +54,6 @@ void loop(){
     t = Serial.read();
   }
   
-  //not efficient and not necessary
   if (t != previous){
     digitalWrite(2,HIGH);
     delay(50);
@@ -65,11 +68,22 @@ void loop(){
   
   long frontDistance = measureDistance(frontTrig, frontEcho);
   long backDistance = measureDistance(backTrig, backEcho);
-  
-  Serial.println(digitalRead(buzzer));
+  long sideDistance = measureDistance(sideTrig, sideEcho);
   
   int ldrValue = analogRead(ldrPin);
+
+  Serial.print("Front: ");
+  Serial.print(frontDistance);
+  Serial.print(" cm, Back: ");
+  Serial.print(backDistance);
+  Serial.print(" cm, Side: ");
+  Serial.print(sideDistance);
+  Serial.print(" cm, Buzzer: ");
+  Serial.print(digitalRead(buzzer));
+  Serial.print(", LDR: ");
   Serial.println(ldrValue);
+    Serial.print(", input: ");
+  Serial.println(t);
 
   if (ldrValue < threshold){
     digitalWrite(ledPin, HIGH);
@@ -78,9 +92,8 @@ void loop(){
     digitalWrite(ledPin, LOW);
   }
   
-  
   if (t == 'F'){
-    if (frontDistance > 20 && backDistance > 20){
+    if (frontDistance > 20 && backDistance > 20 && sideDistance > 20){
       digitalWrite(6,HIGH);
       digitalWrite(7,LOW);
       digitalWrite(8,HIGH);
@@ -141,7 +154,7 @@ void loop(){
       avoidObstacle = false;
   }
 
-  if (frontDistance <= 20 || backDistance <= 20){
+  if (frontDistance <= 20 || backDistance <= 20 || sideDistance <= 20){
 	 if (firstDetection || avoidObstacle){
       digitalWrite(6,LOW);
       digitalWrite(7,LOW);
@@ -152,7 +165,6 @@ void loop(){
       digitalWrite(12,LOW);
       digitalWrite(13,LOW);
     
-      //not efficient cause it stays working for 300ms
       tone(buzzer, 1000);
       digitalWrite(2,HIGH);
       delay(100);

@@ -5,8 +5,8 @@ from pymongo import MongoClient
 
 # MongoDB Connection Function
 def database_insert(record):
-    USERNAME = "look"
-    PASSWORD = "eternal"
+    USERNAME = os.environ.get('USERNAME')
+    PASSWORD = os.environ.get('PASSWORD')
     
     connection_string = f"mongodb+srv://{USERNAME}:{PASSWORD}@core.pur20xh.mongodb.net/?appName=Core"
     client = MongoClient(connection_string)

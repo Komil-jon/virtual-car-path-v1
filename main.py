@@ -6,8 +6,8 @@ from flask_cors import CORS
 from pymongo import MongoClient
 from bson import ObjectId
 
-USERNAME = "look"
-PASSWORD = "eternal"
+USERNAME = os.environ.get('USERNAME')
+PASSWORD = os.environ.get('PASSWORD')
 
 # Create Flask App
 app = Flask(__name__)
